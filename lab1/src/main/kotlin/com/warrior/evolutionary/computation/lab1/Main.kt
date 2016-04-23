@@ -1,5 +1,6 @@
 package com.warrior.evolutionary.computation.lab1
 
+import com.warrior.evolutionary.computation.core.IterationPredicate
 import org.math.plot.Plot2DPanel
 import java.awt.Color
 import java.awt.Rectangle

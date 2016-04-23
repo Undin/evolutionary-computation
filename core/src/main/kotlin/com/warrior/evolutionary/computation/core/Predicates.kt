@@ -1,9 +1,9 @@
-package com.warrior.evolutionary.computation.lab1
+package com.warrior.evolutionary.computation.core
 
 /**
  * Created by warrior on 18.04.16.
  */
-open class IterationPredicate(val iteration: Int) : GeneticAlgorithm.Predicate {
+open class IterationPredicate(val iteration: Int) : Predicate {
 
     var iterationPass: Int = 0
 
