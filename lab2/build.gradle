@@ -1,0 +1,14 @@
+apply plugin: 'java'
+apply plugin: 'kotlin'
+
+sourceCompatibility = 1.8
+
+repositories {
+    maven { url 'http://maven.jzy3d.org/snapshots' }
+}
+
+dependencies {
+    compile project(":core")
+    compile 'org.jzy3d:jzy3d-api:1.0.0-SNAPSHOT'
+    compile "com.github.yannrichet:JMathPlot:1.0.1"
+}

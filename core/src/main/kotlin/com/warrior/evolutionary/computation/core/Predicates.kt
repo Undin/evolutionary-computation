@@ -16,7 +16,7 @@ open class IterationPredicate(val iteration: Int) : Predicate {
     }
 }
 
-class PrecisionPredicate(val realValue: Double, val precision: Double) : IterationPredicate(200) {
+class PrecisionPredicate(val realValue: Double, val precision: Double, iteration: Int = 200) : IterationPredicate(iteration) {
     override fun test(value: Double): Boolean {
         if (Math.abs(realValue - value) < precision) {
             return true

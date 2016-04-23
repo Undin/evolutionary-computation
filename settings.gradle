@@ -1,3 +1,4 @@
 rootProject.name = 'evolutionary-computation'
 include 'core'
 include 'lab1'
+include 'lab2'
