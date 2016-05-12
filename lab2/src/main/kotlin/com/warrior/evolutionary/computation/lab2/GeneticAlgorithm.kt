@@ -6,10 +6,11 @@ import java.util.*
 /**
  * Created by warrior on 22.04.16.
  */
-class GeneticAlgorithm(val function: (DoubleArray) -> Double, val ranges: Array<ClosedRange<Double>>) {
+class GeneticAlgorithm(val ranges: Array<ClosedRange<Double>>, val function: (DoubleArray) -> Double) {
 
     private val random = Random()
 
+    var populationSize = 50
     var mutationProbability = 0.1
     var crossoverProbability = 0.9
 
@@ -17,7 +18,7 @@ class GeneticAlgorithm(val function: (DoubleArray) -> Double, val ranges: Array<
 
     val a = 1.5;
 
-    fun search(populationSize: Int, predicate: Predicate): List<List<Individual>> {
+    fun search(predicate: Predicate): List<List<Individual>> {
         val pointsList = ArrayList<List<Individual>>()
 
         var population = (1..populationSize).map {

@@ -17,8 +17,8 @@ fun main(args: Array<String>) {
 
     var populations: List<List<GeneticAlgorithm.Individual>>? = null
     for (i in 1..20) {
-        val algorithm = GeneticAlgorithm(FN_2D, arrayOf(DoubleRange(X_LEFT, X_RIGHT), DoubleRange(Y_LEFT, Y_RIGHT)))
-        val newPopulations = algorithm.search(50, IterationPredicate(100))
+        val algorithm = GeneticAlgorithm(arrayOf(DoubleRange(X_LEFT, X_RIGHT), DoubleRange(Y_LEFT, Y_RIGHT)), FN_2D)
+        val newPopulations = algorithm.search(IterationPredicate(100))
         if (populations == null || populations.last()[0] < newPopulations.last()[0]) {
             populations = newPopulations
         }

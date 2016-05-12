@@ -6,6 +6,7 @@ import com.warrior.evolutionary.computation.core.PrecisionPredicate
 import org.math.plot.Plot2DPanel
 import java.awt.Color
 import java.awt.Rectangle
+import java.util.stream.Collectors
 import java.util.stream.DoubleStream
 import java.util.stream.IntStream
 import javax.swing.JFrame
@@ -16,17 +17,25 @@ import javax.swing.JFrame
 val PRECISION = 0.05
 
 fun main(args: Array<String>) {
-    drawPlot("population size", "iterations", ::populationSizeToIterations)
-    drawPlot("crossover probability", "iterations", ::crossoverProbabilityToIterations)
-    drawPlot("mutation probability", "iterations", ::mutationProbabilityToIterations)
-    drawPlot("population size", "precision", ::populationSizeToPrecision)
-    drawPlot("crossover probability", "precision", ::crossoverProbabilityToPrecision)
-    drawPlot("mutation probability", "precision", ::mutationProbabilityToPrecision)
+    val (populationSize, values1) = populationSizeToIterationsAndCalls()
+    drawPlot("population size", "iterations", Pair(populationSize, values1.first))
+    drawPlot("population size", "calls", Pair(populationSize, values1.second))
+
+    val (crossoverProbability, values2) = crossoverProbabilityToIterationsAndCalls()
+    drawPlot("crossover probability", "iterations", Pair(crossoverProbability, values2.first))
+    drawPlot("crossover probability", "calls", Pair(crossoverProbability, values2.second))
+
+    val (mutationProbability, values3) = mutationProbabilityToIterationsAndCalls()
+    drawPlot("mutation probability", "iterations", Pair(mutationProbability, values3.first))
+    drawPlot("mutation probability", "calls", Pair(mutationProbability, values3.second))
+
+    drawPlot("population size", "precision", populationSizeToPrecision())
+    drawPlot("crossover probability", "precision", crossoverProbabilityToPrecision())
+    drawPlot("mutation probability", "precision", mutationProbabilityToPrecision())
 
 }
 
-private fun drawPlot(xLabel: String, yLabel: String, daraFactory: () -> Pair<DoubleArray, DoubleArray>) {
-    val result = daraFactory()
+private fun drawPlot(xLabel: String, yLabel: String, result: Pair<DoubleArray, DoubleArray>) {
     val plot = Plot2DPanel()
     plot.setAxisLabels(xLabel, yLabel)
     plot.addLinePlot("", Color.BLACK, result.first, result.second)
@@ -37,123 +46,96 @@ private fun drawPlot(xLabel: String, yLabel: String, daraFactory: () -> Pair<Dou
     frame.isVisible = true
 }
 
-private fun populationSizeToIterations(): Pair<DoubleArray, DoubleArray> {
-    val populationSize = DoubleArray(19) { (it + 2) * 5.0 }
-    val algorithm = GeneticAlgorithm(FN_2D, arrayOf(DoubleRange(0.0, 10.0), DoubleRange(0.0, 10.0)))
-
-    val values = DoubleStream.of(*populationSize)
-            .parallel()
-            .map { size ->
-                println(size)
-                IntStream.range(0, 500).map {
-                    val predicate = PrecisionPredicate(MIN, PRECISION, 200)
-                    algorithm.search(size.toInt(), predicate)
-                    println("$size[$it]: ${predicate.iterationPass}")
-                    predicate.iterationPass
-                }.average().asDouble
-            }
-            .toArray()
-    return populationSize to values
+private fun populationSizeToIterationsAndCalls(): Pair<DoubleArray, Pair<DoubleArray, DoubleArray>> {
+    val populationSizes = DoubleArray(19) { (it + 2) * 5.0 }
+    val result = measureIterationsAndCalls(populationSizes, 500) {
+        populationSize = it.toInt()
+    }
+    return Pair(populationSizes, result)
 }
 
-private fun crossoverProbabilityToIterations(): Pair<DoubleArray, DoubleArray> {
-    val crossoverProbability = DoubleArray(10) { (it + 1) * 0.1 }
-
-    val values = DoubleStream.of(*crossoverProbability)
-            .parallel()
-            .map { probability ->
-                println(probability)
-                val algorithm = GeneticAlgorithm(FN_2D, arrayOf(DoubleRange(0.0, 10.0), DoubleRange(0.0, 10.0)))
-                algorithm.crossoverProbability = probability
-                IntStream.range(0, 500).map {
-                    val predicate = PrecisionPredicate(MIN, PRECISION, 200)
-                    algorithm.search(50, predicate)
-                    println("$probability[$it]: ${predicate.iterationPass}")
-                    predicate.iterationPass
-                }.average().asDouble
-            }
-            .toArray()
-    return crossoverProbability to values
+private fun crossoverProbabilityToIterationsAndCalls(): Pair<DoubleArray, Pair<DoubleArray, DoubleArray>> {
+    val crossoverProbabilities = DoubleArray(10) { (it + 1) * 0.1 }
+    val result = measureIterationsAndCalls(crossoverProbabilities, 500) {
+        crossoverProbability = it
+    }
+    return Pair(crossoverProbabilities, result)
 }
 
-private fun mutationProbabilityToIterations(): Pair<DoubleArray, DoubleArray> {
-    val mutationProbability = DoubleArray(25) { 0.001 + it * 0.004 }
+private fun mutationProbabilityToIterationsAndCalls(): Pair<DoubleArray, Pair<DoubleArray, DoubleArray>> {
+    val mutationProbabilities = DoubleArray(25) { 0.001 + it * 0.004 }
+    val result = measureIterationsAndCalls(mutationProbabilities, 500) {
+        mutationProbability = it
+    }
+    return Pair(mutationProbabilities, result)
+}
 
-    val values = DoubleStream.of(*mutationProbability)
+private fun measureIterationsAndCalls(params: DoubleArray, iterations: Int, block: GeneticAlgorithm.(Double) -> Unit): Pair<DoubleArray, DoubleArray> {
+    val values = DoubleStream.of(*params)
             .parallel()
-            .map { probability ->
-                println(probability)
-                val algorithm = GeneticAlgorithm(FN_2D, arrayOf(DoubleRange(0.0, 10.0), DoubleRange(0.0, 10.0)))
-                algorithm.mutationProbability = probability
-                IntStream.range(0, 500).map {
+            .mapToObj { param ->
+                println(param)
+
+                var iterationsSum = 0
+                var callsSum = 0
+                for (i in 1..iterations) {
+                    var calls = 0
+                    val algorithm = GeneticAlgorithm(arrayOf(DoubleRange(0.0, 10.0), DoubleRange(0.0, 10.0))) {
+                        calls++
+                        FN_2D(it)
+                    }
+                    algorithm.block(param)
+
                     val predicate = PrecisionPredicate(MIN, PRECISION, 200)
-                    algorithm.search(50, predicate)
-                    println("$probability[$it]: ${predicate.iterationPass}")
-                    predicate.iterationPass
-                }.average().asDouble
+                    algorithm.search(predicate)
+                    iterationsSum += predicate.iterationPass
+                    callsSum += calls
+                }
+                Pair(iterationsSum.toDouble() / iterations, callsSum.toDouble() / iterations)
             }
-            .toArray()
-    return mutationProbability to values
+            .collect(Collectors.toList<Pair<Double, Double>>())
+
+    val iterationsArray = DoubleArray(values.size) { values[it].first }
+    val callsArray = DoubleArray(values.size) { values[it].second }
+    return Pair(iterationsArray, callsArray)
 }
 
 private fun populationSizeToPrecision(): Pair<DoubleArray, DoubleArray> {
-    val populationSize = DoubleArray(19) { (it + 2) * 5.0 }
-    val algorithm = GeneticAlgorithm(FN_2D, arrayOf(DoubleRange(0.0, 10.0), DoubleRange(0.0, 10.0)))
-
-    val values = DoubleStream.of(*populationSize)
-            .parallel()
-            .map { size ->
-                println(size)
-                IntStream.range(0, 100).mapToDouble {
-                    val predicate = IterationPredicate(100)
-                    val populations = algorithm.search(size.toInt(), predicate)
-                    val result = Math.abs(populations.last()[0].value - MIN)
-                    println("$size[$it]: $result")
-                    result
-                }.average().asDouble
-            }
-            .toArray()
-    return populationSize to values
+    val populationSizes = DoubleArray(19) { (it + 2) * 5.0 }
+    val result = measurePrecision(populationSizes, 100) {
+        populationSize = it.toInt()
+    }
+    return Pair(populationSizes, result)
 }
 
 private fun crossoverProbabilityToPrecision(): Pair<DoubleArray, DoubleArray> {
-    val crossoverProbability = DoubleArray(10) { (it + 1) * 0.1 }
-
-    val values = DoubleStream.of(*crossoverProbability)
-            .parallel()
-            .map { probability ->
-                println(probability)
-                val algorithm = GeneticAlgorithm(FN_2D, arrayOf(DoubleRange(0.0, 10.0), DoubleRange(0.0, 10.0)))
-                algorithm.crossoverProbability = probability
-                IntStream.range(0, 500).mapToDouble {
-                    val predicate = IterationPredicate(100)
-                    val populations = algorithm.search(50, predicate)
-                    val result = Math.abs(populations.last()[0].value - MIN)
-                    println("$probability[$it]: $result")
-                    result
-                }.average().asDouble
-            }
-            .toArray()
-    return crossoverProbability to values
+    val crossoverProbabilities = DoubleArray(10) { (it + 1) * 0.1 }
+    val result = measurePrecision(crossoverProbabilities, 500) {
+        crossoverProbability = it
+    }
+    return Pair(crossoverProbabilities, result)
 }
 
 private fun mutationProbabilityToPrecision(): Pair<DoubleArray, DoubleArray> {
-    val mutationProbability = DoubleArray(25) { 0.001 + it * 0.004 }
+    val mutationProbabilities = DoubleArray(25) { 0.001 + it * 0.004 }
+    val result = measurePrecision(mutationProbabilities, 1000) {
+        mutationProbability = it
+    }
+    return Pair(mutationProbabilities, result)
+}
 
-    val values = DoubleStream.of(*mutationProbability)
+private fun measurePrecision(params: DoubleArray, iterations: Int, block: GeneticAlgorithm.(Double) -> Unit): DoubleArray {
+    return DoubleStream.of(*params)
             .parallel()
-            .map { probability ->
-                println(probability)
-                val algorithm = GeneticAlgorithm(FN_2D, arrayOf(DoubleRange(0.0, 10.0), DoubleRange(0.0, 10.0)))
-                algorithm.mutationProbability = probability
-                IntStream.range(0, 1000).mapToDouble {
+            .map { param ->
+                println(param)
+                val algorithm = GeneticAlgorithm(arrayOf(DoubleRange(0.0, 10.0), DoubleRange(0.0, 10.0)), FN_2D)
+                algorithm.block(param)
+                IntStream.range(0, iterations).mapToDouble {
                     val predicate = IterationPredicate(100)
-                    val populations = algorithm.search(50, predicate)
-                    val result = Math.abs(populations.last()[0].value - MIN)
-                    println("$probability[$it]: $result")
-                    result
+                    val populations = algorithm.search(predicate)
+                    Math.abs(populations.last()[0].value - MIN)
                 }.average().asDouble
             }
             .toArray()
-    return mutationProbability to values
 }
