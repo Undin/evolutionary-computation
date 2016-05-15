@@ -10,5 +10,5 @@ repositories {
 dependencies {
     compile project(":core")
     compile 'org.jzy3d:jzy3d-api:1.0.0-SNAPSHOT'
-    compile "com.github.yannrichet:JMathPlot:1.0.1"
+    compile 'com.github.yannrichet:JMathPlot:1.0.1'
 }

@@ -4,6 +4,6 @@ apply plugin: 'kotlin'
 sourceCompatibility = 1.8
 
 dependencies {
-    compile project(":core")
-    compile "com.github.yannrichet:JMathPlot:1.0.1"
+    compile project(':core')
+    compile 'com.github.yannrichet:JMathPlot:1.0.1'
 }
