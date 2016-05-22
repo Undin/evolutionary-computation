@@ -2,6 +2,9 @@ package com.warrior.evolutionary.computation.lab3
 
 import com.warrior.evolutionary.computation.core.Predicate
 import java.util.*
+import java.util.stream.Collectors
+import java.util.stream.IntStream
+import java.util.stream.StreamSupport
 
 /**
  * Created by warrior on 24.04.16.
@@ -41,52 +44,79 @@ class GeneticAlgorithm(val points: List<Pair<Int, Int>>, val function: (List<Pai
         this.maxY = maxY
     }
 
-    var survivedPart = 0.5
-    var mutationProbability = 0.4
+    var survivedPart = 0.01
+    var mutationProbability = 0.5
     var tournamentProbability = 0.8
 
     fun search(populationSize: Int, predicate: Predicate): List<Pair<List<Int>, Double>> {
         val pointsList = ArrayList<Pair<List<Int>, Double>>(populationSize + 1)
 
-        var population = (1..populationSize).map { randomChromosome() }
-            .map { Individual(it, dist(it)) }
-            .toMutableList()
-        population.sort()
+        var population = IntStream.range(0, populationSize)
+                .mapToObj { randomChromosome() }
+                .parallel()
+                .map { Individual(it, dist(it)) }
+                .sorted()
+                .collect(Collectors.toList<Individual>())
 
-        println(population[0].value)
+        printBests(population)
         pointsList.add(Pair(population[0].chromosome.toAbsoluteOrder(0..points.lastIndex), population[0].value))
 
-        val childrenNumber = ((survivedPart * populationSize + 0.5).toInt() / 2) * 2
+        val childrenNumber = (Math.min(populationSize - 1, (survivedPart * populationSize + 0.5).toInt()) / 2) * 2
 
         while (!predicate.test(population[0].value)) {
-            val children = ArrayList<Individual>(childrenNumber)
+            val childrenChromosomes = ArrayList<List<Int>>(childrenNumber)
 
             for (i in 1..childrenNumber / 2) {
                 val firstParent = population[random.nextInt(populationSize)]
                 val secondParent = population[random.nextInt(populationSize)]
                 val (firstChromosome, secondChromosome) = crossover(firstParent.chromosome, secondParent.chromosome)
-                val firstChild = Individual(mutation(firstChromosome), dist(firstChromosome))
-                val secondChild = Individual(mutation(secondChromosome), dist(secondChromosome))
-                children.add(firstChild)
-                children.add(secondChild)
+                val firstChild = mutation(firstChromosome)
+                val secondChild = mutation(secondChromosome)
+                childrenChromosomes.add(firstChild)
+                childrenChromosomes.add(secondChild)
             }
-            val newPopulation = ArrayList<Individual>(populationSize)
-            newPopulation.add(population.removeAt(0))
-            for (j in 1..populationSize - childrenNumber - 1) {
-                val first = random.nextInt(population.size)
-                val second = random.nextInt(population.size)
-                val index = if (random.nextDouble() < tournamentProbability) { first } else { second }
-                newPopulation.add(population.removeAt(index))
-            }
-            newPopulation += children
-            newPopulation.sort()
-            population = newPopulation
 
-            println(population[0].value)
+            val children = StreamSupport.stream(childrenChromosomes.spliterator(), true)
+                    .map { Individual(it, dist(it)) }
+                    .collect(Collectors.toList<Individual>())
+
+            population = selection(population, children)
+
+            printBests(population)
             pointsList.add(Pair(population[0].chromosome.toAbsoluteOrder(0..points.lastIndex), population[0].value))
         }
 
         return pointsList
+    }
+
+    private fun printBests(population: List<Individual>) {
+        for (i in 0..4) {
+            println(population[i].value)
+        }
+        println("---------------------------")
+    }
+
+    private fun selection(currentPopulation: List<Individual>, children: List<Individual>): List<Individual> {
+        val populationSize = currentPopulation.size
+        val survivedNumber = populationSize - children.size
+        val newPopulation = ArrayList<Individual>(populationSize)
+        val other = ArrayList<Individual>(2 * children.size)
+        for ((i, ch) in currentPopulation.withIndex()) {
+            if (i < survivedNumber) {
+                newPopulation.add(ch)
+            } else {
+                other.add(ch)
+            }
+        }
+        other += children
+        for (j in 1..populationSize - survivedNumber) {
+            val first = random.nextInt(other.size)
+            val second = random.nextInt(other.size)
+            val index = if (random.nextDouble() < tournamentProbability) { first } else { second }
+            newPopulation.add(other.removeAt(index))
+        }
+        newPopulation.sort()
+        return newPopulation
     }
 
     private fun dist(relativeOrder: List<Int>): Double {
