@@ -13,9 +13,9 @@ import javax.swing.JFrame
  */
 
 fun main(args: Array<String>) {
-    drawPlot("survived part", "iterations", survivedPartMeasure())
-    drawPlot("tournament probability", "iterations", tournamentProbabilityMeasure())
-    drawPlot("mutation probability", "iterations", mutationProbabilityMeasure())
+    drawPlot("survived part", "way length", survivedPartMeasure())
+    drawPlot("tournament probability", "way length", tournamentProbabilityMeasure())
+    drawPlot("mutation probability", "way length", mutationProbabilityMeasure())
 }
 
 private fun drawPlot(xLabel: String, yLabel: String, result: Pair<DoubleArray, DoubleArray>) {
@@ -31,7 +31,7 @@ private fun drawPlot(xLabel: String, yLabel: String, result: Pair<DoubleArray, D
 
 private fun survivedPartMeasure(): Pair<DoubleArray, DoubleArray> {
     val survivedPart = DoubleArray(10) { 0.1 * (it + 1) }
-    val result = measure(survivedPart, 200) {
+    val result = measure(survivedPart, 50) {
         this.survivedPart = it
     }
     return Pair(survivedPart, result)
@@ -39,7 +39,7 @@ private fun survivedPartMeasure(): Pair<DoubleArray, DoubleArray> {
 
 private fun mutationProbabilityMeasure(): Pair<DoubleArray, DoubleArray> {
     val mutationProbability = DoubleArray(10) { 0.1 * (it + 1) }
-    val result = measure(mutationProbability, 200) {
+    val result = measure(mutationProbability, 50) {
         this.mutationProbability = it
     }
     return Pair(mutationProbability, result)
@@ -47,7 +47,7 @@ private fun mutationProbabilityMeasure(): Pair<DoubleArray, DoubleArray> {
 
 private fun tournamentProbabilityMeasure(): Pair<DoubleArray, DoubleArray> {
     val tournamentProbability = DoubleArray(10) { 0.1 * (it + 1) }
-    val result = measure(tournamentProbability, 200) {
+    val result = measure(tournamentProbability, 50) {
         this.tournamentProbability = it
     }
     return Pair(tournamentProbability, result)
@@ -55,13 +55,12 @@ private fun tournamentProbabilityMeasure(): Pair<DoubleArray, DoubleArray> {
 
 private fun measure(params: DoubleArray, iterations: Int, block: GeneticAlgorithm.(Double) -> Unit): DoubleArray {
     return DoubleStream.of(*params)
-            .parallel()
             .map { param ->
                 println(param)
                 val algorithm = GeneticAlgorithm(POINTS, ::dist)
                 algorithm.block(param)
                 IntStream.range(0, iterations).mapToDouble {
-                    val predicate = IterationPredicate(1000)
+                    val predicate = IterationPredicate(5000)
                     algorithm.search(100, predicate).last().second
                 }.average().asDouble
             }

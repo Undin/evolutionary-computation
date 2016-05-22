@@ -44,9 +44,9 @@ class GeneticAlgorithm(val points: List<Pair<Int, Int>>, val function: (List<Pai
         this.maxY = maxY
     }
 
-    var survivedPart = 0.01
-    var mutationProbability = 0.5
-    var tournamentProbability = 0.8
+    var survivedPart = 0.2
+    var mutationProbability = 0.4
+    var tournamentProbability = 0.7
 
     fun search(populationSize: Int, predicate: Predicate): List<Pair<List<Int>, Double>> {
         val pointsList = ArrayList<Pair<List<Int>, Double>>(populationSize + 1)

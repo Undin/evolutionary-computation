@@ -69,7 +69,7 @@ val BEST_RESULT = dist(BEST_WAY.map { POINTS[it] })
 
 fun main(args: Array<String>) {
     val algorithm = GeneticAlgorithm(POINTS, ::dist)
-    val results = algorithm.search(200, IterationPredicate(1000))
+    val results = algorithm.search(100, IterationPredicate(5000))
     println(BEST_RESULT)
     draw(results.last().first)
 }
