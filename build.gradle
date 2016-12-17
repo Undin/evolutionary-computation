@@ -3,7 +3,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.0.2'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.0.5-2'
     }
 }
 
@@ -13,4 +13,4 @@ allprojects {
     }
 }
 
-ext.kotlinVersion = '1.0.2'
+ext.kotlinVersion = '1.0.5-2'
